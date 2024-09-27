@@ -1,73 +1,62 @@
+const NotFoundError = require("../errors/NotFoundError");
+const ValidationError = require("../errors/ValidationError");
+const deviceModel = require("../models/device.model");
 const HeartRateReading = require("../models/heartRateReading.model");
+const moment = require("moment");
 
-// Create a new heart rate reading
-exports.createHeartRateReading = async (req, res) => {
-  try {
-    const heartRateReading = new HeartRateReading(req.body);
-    const savedHeartRateReading = await heartRateReading.save();
-    res.status(201).json(savedHeartRateReading);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};
+class heartRateReadingController {
+  createHeartRateReading = async (req, response) => {
+    const userId = req.userId;
+    const deviceId = req.body.deviceId;
+    const heartRateValue = req.body.heartRateValue;
+    if (!deviceId || !heartRateValue)
+      throw new ValidationError({ message: "Data must be filled" });
+    const device = await deviceModel.findOne({
+      user_id: userId,
+      _id: deviceId,
+    });
+    if (!device) throw new NotFoundError({ message: "Not found device" });
+    const newHeartRate = new HeartRateReading({
+      device_id: deviceId,
+      user_id: userId,
+      heart_rate: heartRateValue,
+    });
 
-// Get all heart rate readings
-exports.getAllHeartRateReadings = async (req, res) => {
-  try {
-    const heartRateReadings = await HeartRateReading.find()
-      .populate("user_id")
-      .populate("device_id");
-    res.status(200).json(heartRateReadings);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+    await newHeartRate.save();
 
-// Get a heart rate reading by ID
-exports.getHeartRateReadingById = async (req, res) => {
-  try {
-    const heartRateReading = await HeartRateReading.findById(req.params.id)
-      .populate("user_id")
-      .populate("device_id");
-    if (!heartRateReading) {
-      return res.status(404).json({ message: "Heart Rate Reading not found" });
-    }
-    res.status(200).json(heartRateReading);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// Update a heart rate reading
-exports.updateHeartRateReading = async (req, res) => {
-  try {
-    const updatedHeartRateReading = await HeartRateReading.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
-    if (!updatedHeartRateReading) {
-      return res.status(404).json({ message: "Heart Rate Reading not found" });
-    }
-    res.status(200).json(updatedHeartRateReading);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};
-
-// Delete a heart rate reading
-exports.deleteHeartRateReading = async (req, res) => {
-  try {
-    const deletedHeartRateReading = await HeartRateReading.findByIdAndDelete(
-      req.params.id
-    );
-    if (!deletedHeartRateReading) {
-      return res.status(404).json({ message: "Heart Rate Reading not found" });
-    }
-    res
+    return response
       .status(200)
-      .json({ message: "Heart Rate Reading deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+      .json({ message: "created", data: newHeartRate });
+  };
+
+  getData = async (req, response) => {
+    const { from, to, deviceId } = req.body;
+    const userId = req.userId;
+    if (!from || !to)
+      throw new ValidationError({ message: "Data must be filled" });
+
+    if (!moment(from, moment.ISO_8601, true).isValid()) {
+      return response.status(400).json({ message: "Start date is not valid." });
+    }
+
+    if (!moment(to, moment.ISO_8601, true).isValid()) {
+      return response.status(400).json({ message: "End date is not valid." });
+    }
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+
+    const records = await HeartRateReading.find({
+      device_id: deviceId,
+      user_id: userId,
+      createdAt: {
+        $gte: fromDate, // Ngày bắt đầu
+        $lte: toDate, // Ngày kết thúc
+      },
+    });
+
+    return response.status(200).json({ data: records });
+  };
+}
+// Create a new heart rate reading
+
+module.exports = new heartRateReadingController();
