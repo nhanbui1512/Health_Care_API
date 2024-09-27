@@ -1,19 +1,23 @@
 const express = require("express");
 
-const { signup, login, logout } = require("../app/controllers/auth.controller");
+const {
+  signup,
+  login,
+  logout,
+  getProfile,
+} = require("../app/controllers/auth.controller");
+const { authMiddleWare } = require("../app/middlewares/auth.middleware");
 
 const router = express.Router();
 
 router.get("/", (req, res) => {
   res.send("Hello from auth route");
 });
+
 router.post("/signup", signup);
 router.post("/login", login);
 router.post("/logout", logout);
-
-router.get("/currentUser", (req, res) => {
-  res.json(req.user);
-});
+router.get("/me", authMiddleWare, getProfile);
 
 // router.get("/authCheck", protectRoute, authCheck);
 

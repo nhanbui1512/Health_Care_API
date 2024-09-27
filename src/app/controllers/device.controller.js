@@ -1,66 +1,104 @@
+const NotFoundError = require("../errors/NotFoundError.js");
+const ValidationError = require("../errors/ValidationError.js");
 const Device = require("../models/device.model.js");
 
 // Create a new device
-async function createDevice(req, res) {
-  try {
-    const device = new Device(req.body);
-    const savedDevice = await device.save();
-    res.status(201).json(savedDevice);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
+async function createDevice(req, response) {
+  const userId = req.userId;
+
+  const { deviceName, deviceType, serialNumber } = req.body;
+  if (!deviceName || !deviceType || !serialNumber) {
+    throw new ValidationError({ message: "Required fields must be filled" });
   }
+
+  const newDevice = new Device({
+    user_id: userId,
+    device_name: deviceName,
+    device_type: deviceType,
+    serial_number: serialNumber,
+  });
+
+  await newDevice.save();
+  return response
+    .status(200)
+    .json({ message: "Add device successfully", data: newDevice });
 }
 
 // Get all devices
 async function getAllDevices(req, res) {
   try {
-    const devices = await Device.find().populate("user_id");
-    res.status(200).json(devices);
+    const userId = req.userId;
+    const devices = await Device.find({ user_id: userId }).populate("user_id");
+
+    var result = devices.map((device) => {
+      device = device.toJSON();
+      device.user = device.user_id;
+      delete device.user.password;
+      delete device.user_id;
+
+      return device;
+    });
+    res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    throw error;
   }
 }
 
 // Get a device by ID
 async function getDeviceById(req, res) {
   try {
-    const device = await Device.findById(req.params.id).populate("user_id");
+    const userId = req.userId;
+    const device = await Device.findOne({
+      _id: req.params.id,
+      user_id: userId,
+    }).populate("user_id");
     if (!device) {
       return res.status(404).json({ message: "Device not found" });
     }
     res.status(200).json(device);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    throw error;
   }
 }
 
 // Update a device
 async function updateDevice(req, res) {
   try {
-    const updatedDevice = await Device.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
-    if (!updatedDevice) {
-      return res.status(404).json({ message: "Device not found" });
-    }
-    res.status(200).json(updatedDevice);
+    const userId = req.userId;
+    const { deviceType, deviceName } = req.body;
+    const deviceId = req.params.id;
+
+    const device = await Device.findOne({
+      user_id: userId,
+      _id: deviceId,
+    });
+    if (!device) throw new NotFoundError({ message: "Not found device" });
+
+    deviceType && (device.device_type = deviceType);
+    deviceName && (device.device_name = deviceName);
+
+    await device.save();
+
+    return res.status(200).json({ newData: device });
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    throw error;
   }
 }
 
 // Delete a device
 async function deleteDevice(req, res) {
   try {
-    const deletedDevice = await Device.findByIdAndDelete(req.params.id);
-    if (!deletedDevice) {
-      return res.status(404).json({ message: "Device not found" });
+    const deviceId = req.params.id;
+    const userId = req.userId;
+
+    const result = await Device.deleteOne({ user_id: userId, _id: deviceId });
+    if (result.deletedCount === 1) {
+      return res.status(200).json({ message: "Delete device successfully" });
+    } else {
+      throw new NotFoundError({ message: "Not found device" });
     }
-    res.status(200).json({ message: "Device deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    throw error;
   }
 }
 

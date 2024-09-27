@@ -1,6 +1,7 @@
 const bcryptjs = require("bcryptjs");
 const User = require("../models/user.model.js");
 const { generateTokenAndSetCookie } = require("../../utils/generateToken.js");
+const userModel = require("../models/user.model.js");
 
 async function signup(req, res, next) {
   try {
@@ -121,4 +122,18 @@ function authCheck(req, res, next) {
   }
 }
 
-module.exports = { signup, login, logout, authCheck };
+async function getProfile(req, response) {
+  try {
+    const userId = req.userId;
+    var user = await userModel.findById(userId);
+    user = user.toJSON();
+    delete user.password;
+    return response.status(200).json({ user });
+  } catch (error) {
+    return response
+      .status(500)
+      .json({ status: 500, message: "Internal error" });
+  }
+}
+
+module.exports = { signup, login, logout, authCheck, getProfile };
