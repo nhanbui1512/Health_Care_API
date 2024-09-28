@@ -5,8 +5,10 @@ const {
   login,
   logout,
   getProfile,
+  changePassword,
 } = require("../app/controllers/auth.controller");
 const { authMiddleWare } = require("../app/middlewares/auth.middleware");
+const { changePassValidation } = require("../validations/auth.validation");
 
 const router = express.Router();
 
@@ -18,6 +20,7 @@ router.post("/signup", signup);
 router.post("/login", login);
 router.post("/logout", logout);
 router.get("/me", authMiddleWare, getProfile);
+router.put("/password", changePassValidation, authMiddleWare, changePassword);
 
 // router.get("/authCheck", protectRoute, authCheck);
 

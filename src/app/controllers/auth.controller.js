@@ -136,4 +136,33 @@ async function getProfile(req, response) {
   }
 }
 
-module.exports = { signup, login, logout, authCheck, getProfile };
+async function changePassword(req, response) {
+  const userId = req.userId;
+  const oldPassword = req.body.oldPassword;
+  const newPassword = req.body.newPassword;
+
+  const user = await User.findOne({
+    _id: userId,
+  });
+
+  const isPasswordCorrect = await bcryptjs.compare(oldPassword, user.password);
+  if (!isPasswordCorrect)
+    return response.status(400).json({ message: "Old password is incorrect" });
+
+  const salt = await bcryptjs.genSalt(10);
+  const hashedPassword = await bcryptjs.hash(newPassword, salt);
+  user.password = hashedPassword;
+  await user.save();
+  return response
+    .status(200)
+    .json({ message: "Change password successfully", user: user });
+}
+
+module.exports = {
+  signup,
+  login,
+  logout,
+  authCheck,
+  getProfile,
+  changePassword,
+};
