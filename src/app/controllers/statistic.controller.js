@@ -1,6 +1,14 @@
-const { groupByDayOfWeek } = require("../../utils/statisticData");
+const {
+  groupByDayOfWeek,
+  calculateAverage,
+} = require("../../utils/statisticData");
+const ValidationError = require("../errors/ValidationError");
 const heartRateReadingModel = require("../models/heartRateReading.model");
 const Statistic = require("../models/statistic.model");
+const {
+  getDataByYear,
+  getDataByMonthOfYear,
+} = require("../services/statistic.services");
 
 function getMondayAndSunday(date) {
   // Sao chép đối tượng date để không thay đổi date gốc
@@ -36,12 +44,23 @@ class statisticController {
   };
 
   getData = async (req, response) => {
-    const date = req.body.date;
     const userId = req.userId;
-    const deviceId = req.body.deviceId;
+    const { date, deviceId, type, month, year } = req.body;
+
+    if (month && !year)
+      throw new ValidationError({ message: "year is required" });
+
+    if (month && year) {
+      const data = await getDataByMonthOfYear(month, year);
+      return response.status(200).json({ data });
+    }
+
+    if (year) {
+      const data = await getDataByYear(year);
+      return response.status(200).json({ data: data });
+    }
 
     const givenDay = new Date(date);
-
     let { monday, sunday } = getMondayAndSunday(givenDay);
 
     const heartRates = await heartRateReadingModel.find({
@@ -54,6 +73,22 @@ class statisticController {
     });
 
     const formatData = groupByDayOfWeek(heartRates);
+
+    if (type === "average") {
+      const days = [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+      ];
+
+      days.forEach((day) => {
+        formatData[day] = Math.floor(calculateAverage(formatData[day]));
+      });
+    }
 
     return response.status(200).json({
       data: formatData,

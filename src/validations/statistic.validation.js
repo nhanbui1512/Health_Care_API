@@ -6,6 +6,9 @@ const getDataVal = async (req, response, next) => {
     const condition = Joi.object({
       deviceId: Joi.string().min(10).max(50).required().trim().strict(),
       date: Joi.date().required(),
+      type: Joi.string().valid("average", "list").required().trim().strict(),
+      month: Joi.number().min(1).max(12),
+      year: Joi.number().min(2023),
     });
 
     await condition.validateAsync(req.body);
