@@ -1,67 +1,64 @@
+const { groupByDayOfWeek } = require("../../utils/statisticData");
+const heartRateReadingModel = require("../models/heartRateReading.model");
 const Statistic = require("../models/statistic.model");
 
-// Create a new statistic
-exports.createStatistic = async (req, res) => {
-  try {
-    const statistic = new Statistic(req.body);
-    const savedStatistic = await statistic.save();
-    res.status(201).json(savedStatistic);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};
+function getMondayAndSunday(date) {
+  // Sao chép đối tượng date để không thay đổi date gốc
+  let currentDate = new Date(date);
 
-// Get all statistics
-exports.getAllStatistics = async (req, res) => {
-  try {
-    const statistics = await Statistic.find().populate("user_id");
-    res.status(200).json(statistics);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+  // Xác định ngày hiện tại là thứ mấy (0: Chủ Nhật, 1: Thứ Hai, ..., 6: Thứ Bảy)
+  let currentDay = currentDate.getDay();
 
-// Get a statistic by ID
-exports.getStatisticById = async (req, res) => {
-  try {
-    const statistic = await Statistic.findById(req.params.id).populate(
-      "user_id"
-    );
-    if (!statistic) {
-      return res.status(404).json({ message: "Statistic not found" });
+  // Nếu là Chủ Nhật thì đặt currentDay thành 7 (vì Chủ Nhật là ngày cuối tuần)
+  currentDay = currentDay === 0 ? 7 : currentDay;
+
+  // Tính thứ Hai
+  let monday = new Date(currentDate);
+  monday.setDate(currentDate.getDate() - (currentDay - 1));
+
+  // Tính Chủ Nhật
+  let sunday = new Date(currentDate);
+  sunday.setDate(currentDate.getDate() + (7 - currentDay));
+
+  return { monday, sunday };
+}
+
+class statisticController {
+  // Create a new statistic
+  createStatistic = async (req, res) => {
+    try {
+      const statistic = new Statistic(req.body);
+      const savedStatistic = await statistic.save();
+      res.status(201).json(savedStatistic);
+    } catch (error) {
+      res.status(400).json({ message: error.message });
     }
-    res.status(200).json(statistic);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+  };
 
-// Update a statistic by ID
-exports.updateStatistic = async (req, res) => {
-  try {
-    const updatedStatistic = await Statistic.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    );
-    if (!updatedStatistic) {
-      return res.status(404).json({ message: "Statistic not found" });
-    }
-    res.status(200).json(updatedStatistic);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};
+  getData = async (req, response) => {
+    const date = req.body.date;
+    const userId = req.userId;
+    const deviceId = req.body.deviceId;
 
-// Delete a statistic by ID
-exports.deleteStatistic = async (req, res) => {
-  try {
-    const deletedStatistic = await Statistic.findByIdAndDelete(req.params.id);
-    if (!deletedStatistic) {
-      return res.status(404).json({ message: "Statistic not found" });
-    }
-    res.status(200).json({ message: "Statistic deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+    const givenDay = new Date(date);
+
+    let { monday, sunday } = getMondayAndSunday(givenDay);
+
+    const heartRates = await heartRateReadingModel.find({
+      device_id: deviceId,
+      user_id: userId,
+      createdAt: {
+        $gte: monday, // Ngày bắt đầu
+        $lte: sunday, // Ngày kết thúc
+      },
+    });
+
+    const formatData = groupByDayOfWeek(heartRates);
+
+    return response.status(200).json({
+      data: formatData,
+    });
+  };
+}
+
+module.exports = new statisticController();
