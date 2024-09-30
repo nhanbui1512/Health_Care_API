@@ -7,6 +7,7 @@ const FallAlert = new Schema(
     device_id: { type: Schema.Types.ObjectId, ref: "Device" },
     alert_type: { type: String, required: true },
     hanled: { type: Boolean, default: false },
+    content: { type: String, required: true },
   },
   {
     timestamps: true,

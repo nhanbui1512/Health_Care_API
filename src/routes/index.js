@@ -5,6 +5,7 @@ const deviceRoute = require("./device.route");
 const fallAlertRoute = require("./fallAlert.route");
 const heartRateRoute = require("./heartRateReading.route");
 const statisticRoute = require("./statistic.route");
+const notificationRoute = require("./notification.route");
 
 /**
  * @swagger
@@ -25,6 +26,7 @@ function routes(app) {
   app.use("/fall-alerts", fallAlertRoute);
   app.use("/heart-rates", heartRateRoute);
   app.use("/statistics", statisticRoute);
+  app.use("/notifications", notificationRoute);
 }
 
 module.exports = routes;
