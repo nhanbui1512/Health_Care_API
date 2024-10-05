@@ -45,7 +45,7 @@ class statisticController {
 
   getData = async (req, response) => {
     const userId = req.userId;
-    const { date, deviceId, type, month, year } = req.body;
+    const { date, deviceId, type, month, year } = req.query;
 
     if (month && !year)
       throw new ValidationError({ message: "year is required" });
