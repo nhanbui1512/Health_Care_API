@@ -13,7 +13,7 @@ const { swaggerDocs } = require("./config/swagger");
 app.use(cors());
 app.use(express.json());
 db.connect();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 app.get("/", (req, res) => {
   res.send("Hello World!");
