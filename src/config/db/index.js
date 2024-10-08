@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { logToFile } = require("../../utils/logsWriter");
 
 async function connect() {
   try {
@@ -7,9 +8,12 @@ async function connect() {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
+    logToFile("Connect DB successfully");
+
     console.log("Connect successfully!!!");
   } catch (error) {
     console.log("Connect failure!!!");
+    logToFile(error);
   }
 }
 

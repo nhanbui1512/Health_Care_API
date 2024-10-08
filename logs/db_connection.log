@@ -1,0 +1,5 @@
+2024-10-08T01:30:57.717Z - Connect DB successfully
+2024-10-08T01:31:28.167Z - Connect DB successfully
+2024-10-08T01:31:45.594Z - Connect DB successfully
+2024-10-08T01:32:08.073Z - Connect DB successfully
+2024-10-08T01:32:48.063Z - MongoParseError: Invalid scheme, expected connection string to start with "mongodb://" or "mongodb+srv://"
